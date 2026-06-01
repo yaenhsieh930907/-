@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台灣犬貓數據 · 高階主管 Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F5F1;--surface:#FFFFFF;--surface2:#F0EDE8;
+  --border:#E2DDD6;--border2:#C8C0B4;
+  --ink:#1A1208;--text:#3D2B1F;--muted:#8A7A6E;--faint:#B8ADA4;
+  --teal:#1D7A66;--teal-l:#E2F4EF;--teal-m:#A8DDD3;
+  --amber:#B87333;--amber-l:#FDF3E4;--amber-m:#F0C882;
+  --rust:#A03020;--rust-l:#FBEAE6;--rust-m:#E8A898;
+  --sage:#4A7055;--sage-l:#EAF3EC;--sage-m:#A8CEB0;
+  --blue:#2A5FA8;--blue-l:#E8F0FB;--blue-m:#A0BEED;
+  --radius:14px;--radius-sm:8px;
+}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 28px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.header-left{display:flex;align-items:center;gap:14px}
+.header-logo{width:36px;height:36px;border-radius:10px;background:var(--ink);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:16px;color:#fff;flex-shrink:0}
+.header-title{font-size:1rem;font-weight:700;color:var(--ink);letter-spacing:-0.01em}
+.header-sub{font-size:0.72rem;color:var(--muted);margin-top:1px}
+.header-badge{padding:4px 12px;background:var(--teal-l);color:var(--teal);border-radius:20px;font-size:0.72rem;font-weight:500;letter-spacing:0.04em}
+
+/* YEAR SLIDER AREA */
+.slider-section{background:var(--surface);border-bottom:1px solid var(--border);padding:20px 28px}
+.slider-row{display:flex;align-items:center;gap:20px}
+.year-display{font-family:'DM Serif Display',serif;font-size:2.4rem;color:var(--ink);min-width:90px;line-height:1;letter-spacing:-0.02em}
+.year-label{font-size:0.68rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
+.slider-wrap{flex:1;position:relative;padding:8px 0}
+.year-slider{width:100%;-webkit-appearance:none;appearance:none;height:4px;background:var(--border2);border-radius:2px;outline:none;cursor:pointer}
+.year-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--ink);cursor:pointer;border:3px solid var(--surface);box-shadow:0 2px 8px rgba(0,0,0,0.2);transition:transform 0.1s}
+.year-slider::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.year-marks{display:flex;justify-content:space-between;margin-top:8px;padding:0 2px}
+.year-mark{font-size:0.65rem;color:var(--faint);cursor:pointer;transition:color 0.2s}
+.year-mark:hover,.year-mark.active{color:var(--ink);font-weight:500}
+.play-controls{display:flex;align-items:center;gap:8px}
+.ctrl-btn{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;color:var(--text);font-size:14px}
+.ctrl-btn:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ctrl-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.data-type-toggle{display:flex;border:1.5px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;margin-left:8px}
+.dt-btn{padding:6px 14px;background:transparent;border:none;cursor:pointer;font-size:0.75rem;color:var(--muted);font-family:'Noto Sans TC',sans-serif;transition:all 0.15s;white-space:nowrap}
+.dt-btn.active{background:var(--ink);color:#fff}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 28px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden;transition:transform 0.2s,box-shadow 0.2s}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.07)}
+.kpi-accent{position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-icon{font-size:1.4rem;margin-bottom:10px}
+.kpi-label{font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px}
+.kpi-value{font-family:'DM Serif Display',serif;font-size:1.9rem;color:var(--ink);line-height:1;letter-spacing:-0.02em;margin-bottom:4px;transition:all 0.3s}
+.kpi-unit{font-family:'Noto Sans TC',sans-serif;font-size:0.85rem;color:var(--muted);font-weight:400}
+.kpi-sub{font-size:0.72rem;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);color:var(--muted);line-height:1.4}
+.kpi-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.68rem;font-weight:500;margin-right:4px}
+.badge-up{background:var(--sage-l);color:var(--sage)}
+.badge-down{background:var(--rust-l);color:var(--rust)}
+.badge-neutral{background:var(--blue-l);color:var(--blue)}
+
+/* CHARTS AREA */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 28px 14px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.chart-card-wide{grid-column:1/-1}
+.chart-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.chart-title{font-size:0.85rem;font-weight:600;color:var(--ink)}
+.chart-sub{font-size:0.7rem;color:var(--muted);margin-top:2px}
+.chart-tag{padding:3px 10px;background:var(--surface2);border-radius:20px;font-size:0.68rem;color:var(--muted)}
+.chart-wrap{position:relative;width:100%}
+.legend-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--muted)}
+.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:0.78rem}
+th{text-align:left;padding:8px 12px;background:var(--surface2);color:var(--muted);font-weight:500;letter-spacing:0.06em;font-size:0.68rem;text-transform:uppercase;border-bottom:1px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);transition:background 0.15s}
+tr:hover td{background:var(--surface2)}
+tr:last-child td{border-bottom:none}
+.td-rank{font-weight:700;color:var(--ink);width:36px}
+.td-bar-wrap{width:120px}
+.td-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.td-bar-fill{height:100%;border-radius:3px;transition:width 0.6s ease;background:var(--teal)}
+.td-change{font-weight:500}
+.td-change.up{color:var(--sage)}
+.td-change.down{color:var(--rust)}
+
+/* NO DATA */
+.no-data{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:120px;color:var(--faint);font-size:0.8rem;gap:6px}
+
+/* FOOTER */
+.footer{padding:16px 28px;border-top:1px solid var(--border);text-align:center;font-size:0.68rem;color:var(--faint)}
+.footer a{color:var(--teal);text-decoration:none}
+
+/* PLAYING INDICATOR */
+.playing-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pulse 1s infinite;display:inline-block;margin-right:6px}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+
+/* TRANSITION */
+.animating .kpi-value{opacity:0;transform:translateY(6px)}
+
+@media(max-width:900px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .charts-grid{grid-template-columns:1fr}
+  .chart-card-wide{grid-column:auto}
+}
+@media(max-width:600px){
+  .kpi-grid{grid-template-columns:1fr}
+  .header{padding:12px 16px}
+  .slider-section,.kpi-grid,.charts-grid{padding-left:16px;padding-right:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">犬</div>
+    <div>
+      <div class="header-title">台灣寵物與流浪動物統計 Dashboard</div>
+      <div class="header-sub">農業部開放資料 · 民國 90–113 年 · 謝亞恩</div>
+    </div>
+  </div>
+  <div class="header-badge" id="playStatus">靜態瀏覽</div>
+</div>
+
+<!-- YEAR SLIDER -->
+<div class="slider-section">
+  <div class="slider-row">
+    <div>
+      <div class="year-display" id="yearDisplay">民90</div>
+      <div class="year-label">當前年度</div>
+    </div>
+    <div style="flex:1">
+      <input type="range" class="year-slider" id="yearSlider" min="0" max="15" value="0" step="1">
+      <div class="year-marks" id="yearMarks"></div>
+    </div>
+    <div class="play-controls">
+      <button class="ctrl-btn" id="prevBtn" title="上一年" onclick="stepYear(-1)">◀</button>
+      <button class="ctrl-btn" id="playBtn" title="播放" onclick="togglePlay()">▶</button>
+      <button class="ctrl-btn" id="nextBtn" title="下一年" onclick="stepYear(1)">▶▶</button>
+      <div class="data-type-toggle">
+        <button class="dt-btn active" id="btnAll" onclick="setMode('all')">全部</button>
+        <button class="dt-btn" id="btnPet" onclick="setMode('pet')">寵物</button>
+        <button class="dt-btn" id="btnStray" onclick="setMode('stray')">流浪犬</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI CARDS -->
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-accent" style="background:var(--teal)"></div>
+    <div class="kpi-icon">🐕</div>
+    <div class="kpi-label">登記犬隻數</div>
+    <div class="kpi-value" id="kpi-dog">—</div>
+    <div class="kpi-sub" id="kpi-dog-sub">—</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-accent" style="background:var(--amber)"></div>
+    <div class="kpi-icon">🐱</div>
+    <div class="kpi-label">推算貓隻數</div>
+    <div class="kpi-value" id="kpi-cat">—</div>
+    <div class="kpi-sub" id="kpi-cat-sub">—</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-accent" style="background:var(--rust)"></div>
+    <div class="kpi-icon">🏠</div>
+    <div class="kpi-label">流浪犬數量</div>
+    <div class="kpi-value" id="kpi-stray">—</div>
+    <div class="kpi-sub" id="kpi-stray-sub">—</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-accent" style="background:var(--blue)"></div>
+    <div class="kpi-icon">📊</div>
+    <div class="kpi-label">貓犬比例</div>
+    <div class="kpi-value" id="kpi-ratio">—</div>
+    <div class="kpi-sub" id="kpi-ratio-sub">—</div>
+  </div>
+</div>
+
+<!-- CHARTS -->
+<div class="charts-grid">
+
+  <!-- TREND CHART -->
+  <div class="chart-card chart-card-wide">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">犬貓數量歷年趨勢</div>
+        <div class="chart-sub">登記犬隻 · 推算貓隻 · 流浪犬（紅線）</div>
+      </div>
+      <div class="chart-tag" id="trendTag">民90年</div>
+    </div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-dot" style="background:#1D7A66"></div>登記犬隻</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#B87333"></div>推算貓隻</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#A03020;border-radius:50%"></div>流浪犬</div>
+    </div>
+    <div class="chart-wrap" style="height:220px">
+      <canvas id="trendChart" role="img" aria-label="歷年犬貓趨勢圖"></canvas>
+    </div>
+  </div>
+
+  <!-- RANKING CHART -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">縣市排名圖</div>
+        <div class="chart-sub" id="rankSub">當年度數量前十縣市</div>
+      </div>
+      <div class="chart-tag" id="rankTag">民90年</div>
+    </div>
+    <div class="chart-wrap" style="height:280px">
+      <canvas id="rankChart" role="img" aria-label="縣市排名橫條圖"></canvas>
+    </div>
+  </div>
+
+  <!-- CAGR CHART -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">CAGR 年均複合成長率</div>
+        <div class="chart-sub">民90年基準 → 當年度（有資料年份）</div>
+      </div>
+      <div class="chart-tag" id="cagrTag">民90年</div>
+    </div>
+    <div class="chart-wrap" style="height:280px">
+      <canvas id="cagrChart" role="img" aria-label="CAGR複合年均成長率圖"></canvas>
+    </div>
+  </div>
+
+  <!-- DATA TABLE -->
+  <div class="chart-card chart-card-wide">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">縣市詳細資料表</div>
+        <div class="chart-sub" id="tableSub">依數量排序</div>
+      </div>
+      <div class="chart-tag" id="tableTag">民90年</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>縣市</th>
+            <th>數量（頭）</th>
+            <th>佔比</th>
+            <th>視覺化</th>
+            <th>較上一筆年度</th>
+          </tr>
+        </thead>
+        <tbody id="dataTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  資料來源：農業部，政府資料開放平台，<a href="https://data.gov.tw/dataset/41771" target="_blank">https://data.gov.tw/dataset/41771</a>
+  &nbsp;·&nbsp; 作者：謝亞恩
+</div>
+
+<script>
+const RAW = {"years":[90,92,94,96,98,100,102,104,106,107,108,109,110,111,112,113],"byYear":{"90":{"dog":1790180,"cat":0,"stray":179457,"county_dog":{"南投縣":39104,"嘉義市":19979,"嘉義縣":42612,"基隆市":27802,"宜蘭縣":28223,"屏東縣":100802,"彰化縣":86792,"新竹市":35936,"新竹縣":43337,"桃園縣":133657,"澎湖縣":3212,"臺中市":64237,"臺中縣":157680,"臺北市":214995,"臺北縣":278346,"臺南市":50443,"臺南縣":76569,"臺東縣":32995,"花蓮縣":43168,"苗栗縣":36897,"連江縣":373,"金門縣":4841,"雲林縣":66392,"高雄市":110547,"高雄縣":91241},"county_stray":{"南投縣":3730,"嘉義市":1191,"嘉義縣":2662,"基隆市":5229,"宜蘭縣":8430,"屏東縣":8143,"彰化縣":12141,"新竹市":1688,"新竹縣":4828,"桃園縣":16187,"澎湖縣":311,"臺中市":3113,"臺中縣":21849,"臺北市":4946,"臺北縣":35960,"臺南市":2807,"臺南縣":5439,"臺東縣":4036,"花蓮縣":4989,"苗栗縣":11302,"連江縣":95,"金門縣":634,"雲林縣":2819,"高雄市":6022,"高雄縣":10906}},"92":{"dog":1352790,"cat":247565,"stray":0,"county_dog":{"南投縣":50980,"嘉義市":10702,"嘉義縣":28762,"基隆市":14367,"宜蘭縣":20304,"屏東縣":62705,"彰化縣":64921,"新竹市":27984,"新竹縣":38549,"桃園縣":92638,"澎湖縣":5041,"臺中市":52240,"臺中縣":63121,"臺北市":217539,"臺北縣":229710,"臺南市":24767,"臺南縣":40098,"臺東縣":23134,"花蓮縣":27923,"苗栗縣":59044,"連江縣":500,"雲林縣":40890,"高雄市":84433,"高雄縣":72438},"county_stray":{}},"94":{"dog":1146489,"cat":221231,"stray":0,"county_dog":{"南投縣":39523,"嘉義市":9496,"嘉義縣":30318,"基隆市":23455,"宜蘭縣":12263,"屏東縣":62825,"彰化縣":65481,"新竹市":19603,"新竹縣":43345,"桃園縣":83908,"澎湖縣":3968,"臺中市":30651,"臺中縣":78409,"臺北市":142863,"臺北縣":169238,"臺南市":24916,"臺南縣":50276,"臺東縣":18395,"花蓮縣":24868,"苗栗縣":37087,"金門縣":4968,"雲林縣":42581,"高雄市":57203,"高雄縣":70849},"county_stray":{}},"96":{"dog":1339469,"cat":285273,"stray":0,"county_dog":{"南投縣":54737,"嘉義市":12272,"嘉義縣":37851,"基隆市":15875,"宜蘭縣":11548,"屏東縣":88664,"彰化縣":62302,"新竹市":21996,"新竹縣":58863,"桃園縣":87742,"澎湖縣":3721,"臺中市":36806,"臺中縣":77114,"臺北市":138057,"臺北縣":203502,"臺南市":30988,"臺南縣":68317,"臺東縣":30673,"花蓮縣":44852,"苗栗縣":45181,"雲林縣":71547,"高雄市":64533,"高雄縣":72328},"county_stray":{}},"98":{"dog":1238603,"cat":311239,"stray":84891,"county_dog":{"南投縣":42882,"嘉義市":11460,"嘉義縣":34442,"基隆市":21765,"宜蘭縣":13352,"屏東縣":56873,"彰化縣":71060,"新竹市":22855,"新竹縣":47070,"桃園縣":107624,"澎湖縣":3112,"臺中市":49310,"臺中縣":75828,"臺北市":149164,"臺北縣":193156,"臺南市":32792,"臺南縣":52032,"臺東縣":20752,"花蓮縣":29429,"苗栗縣":40646,"金門縣":3596,"雲林縣":40412,"高雄市":46835,"高雄縣":72156},"county_stray":{"南投縣":1202,"嘉義市":573,"嘉義縣":3579,"基隆市":626,"宜蘭縣":4006,"屏東縣":1783,"彰化縣":7130,"新竹市":2304,"新竹縣":5210,"桃園縣":4020,"澎湖縣":725,"臺中市":3145,"臺中縣":6029,"臺北市":3192,"臺北縣":5060,"臺南市":673,"臺南縣":5197,"臺東縣":3130,"花蓮縣":2084,"苗栗縣":6543,"連江縣":442,"金門縣":87,"雲林縣":8646,"高雄市":3992,"高雄縣":5513}},"100":{"dog":1247930,"cat":302845,"stray":0,"county_dog":{"南投縣":33543,"嘉義市":13660,"嘉義縣":31784,"基隆市":19627,"宜蘭縣":25153,"屏東縣":50166,"彰化縣":63376,"新北市":198701,"新竹市":20216,"新竹縣":32882,"桃園縣":113103,"澎湖縣":6634,"臺中市":133215,"臺北市":139844,"臺南市":99256,"臺東縣":15859,"花蓮縣":19736,"苗栗縣":34120,"連江縣":1293,"金門縣":4728,"雲林縣":41548,"高雄市":149486},"county_stray":{}},"102":{"dog":1741602,"cat":578993,"stray":0,"county_dog":{"南投縣":48535,"嘉義市":14988,"嘉義縣":44259,"基隆市":22988,"宜蘭縣":40082,"屏東縣":74033,"彰化縣":91701,"新北市":273412,"新竹市":23027,"新竹縣":47802,"桃園縣":152873,"澎湖縣":2982,"臺中市":197626,"臺北市":154522,"臺南市":146828,"臺東縣":21390,"花蓮縣":32902,"苗栗縣":44744,"雲林縣":70718,"高雄市":236190},"county_stray":{}},"104":{"dog":1714238,"cat":567939,"stray":128472,"county_dog":{"南投縣":45467,"嘉義市":20895,"嘉義縣":37852,"基隆市":27833,"宜蘭縣":34766,"屏東縣":66672,"彰化縣":91692,"新北市":269100,"新竹市":39243,"新竹縣":46403,"桃園市":176672,"臺中市":183592,"臺北市":148096,"臺南市":136151,"臺東縣":24599,"花蓮縣":35741,"苗栗縣":47727,"雲林縣":59560,"高雄市":222177},"county_stray":{"南投縣":2819,"嘉義市":3535,"嘉義縣":6811,"基隆市":404,"宜蘭縣":6626,"屏東縣":4625,"彰化縣":7100,"新北市":4295,"新竹市":1862,"新竹縣":2318,"桃園市":8960,"澎湖縣":713,"臺中市":15028,"臺北市":2931,"臺南市":24596,"臺東縣":3229,"花蓮縣":4807,"苗栗縣":2435,"連江縣":87,"金門縣":908,"雲林縣":9163,"高雄市":15220}},"106":{"dog":1777252,"cat":733207,"stray":0,"county_dog":{"南投縣":69851,"嘉義市":15432,"嘉義縣":43753,"基隆市":21147,"宜蘭縣":32939,"屏東縣":94456,"彰化縣":93655,"新北市":244290,"新竹市":36605,"新竹縣":47815,"桃園市":174894,"臺中市":154468,"臺北市":169263,"臺南市":116198,"臺東縣":28988,"花蓮縣":38924,"苗栗縣":83118,"雲林縣":53443,"高雄市":258013},"county_stray":{}},"107":{"dog":0,"cat":0,"stray":146774,"county_dog":{},"county_stray":{"南投縣":4243,"嘉義市":3094,"嘉義縣":9097,"基隆市":4807,"宜蘭縣":4667,"屏東縣":10973,"彰化縣":16473,"新北市":12202,"新竹市":783,"新竹縣":5659,"桃園市":9686,"澎湖縣":3008,"臺中市":7029,"臺北市":4660,"臺南市":22176,"臺東縣":8485,"花蓮縣":8167,"苗栗縣":1685,"連江縣":41,"金門縣":305,"雲林縣":3542,"高雄市":5992}},"108":{"dog":1537441,"cat":763771,"stray":0,"county_dog":{"南投縣":51506,"嘉義市":15584,"嘉義縣":50274,"基隆市":16812,"宜蘭縣":37904,"屏東縣":105977,"彰化縣":80138,"新北市":211383,"新竹市":39056,"新竹縣":46940,"桃園市":131010,"澎湖縣":4629,"臺中市":150907,"臺北市":140959,"臺南市":85038,"臺東縣":31167,"花蓮縣":33860,"苗栗縣":41954,"連江縣":448,"金門縣":6573,"雲林縣":58899,"高雄市":196423},"county_stray":{}},"109":{"dog":0,"cat":0,"stray":155867,"county_dog":{},"county_stray":{"南投縣":6724,"嘉義市":890,"嘉義縣":17408,"基隆市":1053,"宜蘭縣":3930,"屏東縣":20291,"彰化縣":9168,"新北市":11328,"新竹市":3225,"新竹縣":4186,"桃園市":11062,"臺中市":6686,"臺北市":3259,"臺南市":19539,"臺東縣":3791,"花蓮縣":5975,"苗栗縣":2905,"連江縣":204,"金門縣":1173,"雲林縣":5799,"高雄市":17271}},"110":{"dog":1235218,"cat":870808,"stray":0,"county_dog":{"南投縣":37825,"嘉義市":13618,"嘉義縣":34579,"基隆市":15949,"宜蘭縣":18749,"屏東縣":59796,"彰化縣":64868,"新北市":180116,"新竹市":21975,"新竹縣":30656,"桃園市":168774,"澎湖縣":4466,"臺中市":139957,"臺北市":126358,"臺南市":77333,"臺東縣":13674,"花蓮縣":26597,"苗栗縣":43999,"連江縣":375,"金門縣":4899,"雲林縣":50389,"高雄市":100266},"county_stray":{}},"111":{"dog":0,"cat":0,"stray":158696,"county_dog":{},"county_stray":{"南投縣":9859,"嘉義市":2695,"嘉義縣":12111,"基隆市":1570,"宜蘭縣":3126,"屏東縣":11711,"彰化縣":13352,"新北市":10920,"新竹市":2657,"新竹縣":2051,"桃園市":15995,"澎湖縣":2217,"臺中市":10846,"臺北市":2364,"臺南市":11372,"臺東縣":6757,"花蓮縣":11762,"苗栗縣":3892,"連江縣":22,"金門縣":161,"雲林縣":7444,"高雄市":15812}},"112":{"dog":1480637,"cat":1311449,"stray":0,"county_dog":{"南投縣":47789,"嘉義市":15524,"嘉義縣":38581,"基隆市":15279,"宜蘭縣":20874,"屏東縣":67967,"彰化縣":73055,"新北市":213551,"新竹市":25108,"新竹縣":43730,"桃園市":150174,"澎湖縣":5327,"臺中市":152469,"臺北市":118739,"臺南市":113356,"臺東縣":23974,"花蓮縣":26973,"苗栗縣":46075,"連江縣":253,"金門縣":5681,"雲林縣":44872,"高雄市":231286},"county_stray":{}},"113":{"dog":0,"cat":0,"stray":141584,"county_dog":{},"county_stray":{"南投縣":9644,"嘉義市":906,"嘉義縣":16944,"基隆市":3112,"宜蘭縣":1630,"屏東縣":10024,"彰化縣":9313,"新北市":9982,"新竹市":516,"新竹縣":2396,"桃園市":7893,"澎湖縣":520,"臺中市":8542,"臺北市":1908,"臺南市":19990,"臺東縣":8551,"花蓮縣":6983,"苗栗縣":7403,"連江縣":26,"金門縣":167,"雲林縣":4934,"高雄市":10200}}}};
+
+const YEARS = RAW.years;
+const BY = RAW.byYear;
+let currentIdx = 0;
+let mode = 'all'; // all, pet, stray
+let playTimer = null;
+let isPlaying = false;
+
+// Build year marks
+const marksEl = document.getElementById('yearMarks');
+YEARS.forEach((y,i) => {
+  const s = document.createElement('span');
+  s.className = 'year-mark' + (i===0?' active':'');
+  s.textContent = i%2===0 ? '民'+y : '';
+  s.onclick = () => { document.getElementById('yearSlider').value = i; updateAll(i); };
+  marksEl.appendChild(s);
+});
+
+// Slider input
+document.getElementById('yearSlider').addEventListener('input', function() {
+  updateAll(parseInt(this.value));
+});
+
+function setMode(m) {
+  mode = m;
+  ['btnAll','btnPet','btnStray'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('btn'+m.charAt(0).toUpperCase()+m.slice(1)).classList.add('active');
+  updateAll(currentIdx);
+}
+
+function stepYear(d) {
+  const newIdx = Math.max(0, Math.min(YEARS.length-1, currentIdx+d));
+  document.getElementById('yearSlider').value = newIdx;
+  updateAll(newIdx);
+}
+
+function togglePlay() {
+  if(isPlaying) pausePlay();
+  else startPlay();
+}
+
+function startPlay() {
+  isPlaying = true;
+  document.getElementById('playBtn').textContent = '⏸';
+  document.getElementById('playBtn').classList.add('active');
+  document.getElementById('playStatus').innerHTML = '<span class="playing-dot"></span>播放中';
+  playTimer = setInterval(() => {
+    const next = (currentIdx + 1) % YEARS.length;
+    document.getElementById('yearSlider').value = next;
+    updateAll(next);
+    if(next === YEARS.length-1) pausePlay();
+  }, 900);
+}
+
+function pausePlay() {
+  isPlaying = false;
+  clearInterval(playTimer);
+  document.getElementById('playBtn').textContent = '▶';
+  document.getElementById('playBtn').classList.remove('active');
+  document.getElementById('playStatus').textContent = '靜態瀏覽';
+}
+
+// ── CHARTS INIT ──
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+const rankCtx = document.getElementById('rankChart').getContext('2d');
+const cagrCtx = document.getElementById('cagrChart').getContext('2d');
+
+// Trend chart - all years data pre-loaded
+const allDog = YEARS.map(y => BY[y].dog || null);
+const allCat = YEARS.map(y => BY[y].cat || null);
+const allStray = YEARS.map(y => BY[y].stray || null);
+
+const trendChart = new Chart(trendCtx, {
+  type: 'line',
+  data: {
+    labels: YEARS.map(y => '民'+y),
+    datasets: [
+      {label:'登記犬隻', data: allDog, borderColor:'#1D7A66', backgroundColor:'rgba(29,122,102,0.06)', fill:true, tension:0.4, pointBackgroundColor:'#1D7A66', pointRadius:4, pointHoverRadius:6, borderWidth:2, pointBorderColor:'#fff', pointBorderWidth:1.5, spanGaps:false},
+      {label:'推算貓隻', data: allCat, borderColor:'#B87333', backgroundColor:'rgba(184,115,51,0.06)', fill:true, tension:0.4, pointBackgroundColor:'#B87333', pointRadius:4, pointHoverRadius:6, borderWidth:2, borderDash:[5,3], pointBorderColor:'#fff', pointBorderWidth:1.5, spanGaps:false},
+      {label:'流浪犬', data: allStray, borderColor:'#A03020', backgroundColor:'transparent', fill:false, tension:0.4, pointBackgroundColor:'#A03020', pointRadius:5, pointHoverRadius:7, borderWidth:2, borderDash:[3,3], pointBorderColor:'#fff', pointBorderWidth:1.5, spanGaps:false}
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => c.dataset.label+'：'+(c.raw/10000).toFixed(1)+'萬'}}},
+    scales:{
+      x:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#8A7A6E',font:{size:10}}},
+      y:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#8A7A6E',font:{size:10},callback:v=>(v/10000).toFixed(0)+'萬'}}
+    },
+    animation:{duration:300}
+  }
+});
+
+// Add vertical line plugin for current year
+const vertLinePlugin = {
+  id:'vertLine',
+  afterDraw(chart) {
+    const idx = currentIdx;
+    if(idx<0 || idx>=chart.data.labels.length) return;
+    const meta = chart.getDatasetMeta(0);
+    if(!meta.data[idx]) return;
+    const x = meta.data[idx].x;
+    const ctx2 = chart.ctx;
+    ctx2.save();
+    ctx2.beginPath();
+    ctx2.moveTo(x, chart.chartArea.top);
+    ctx2.lineTo(x, chart.chartArea.bottom);
+    ctx2.strokeStyle = 'rgba(26,18,8,0.25)';
+    ctx2.lineWidth = 1.5;
+    ctx2.setLineDash([4,3]);
+    ctx2.stroke();
+    ctx2.restore();
+  }
+};
+Chart.register(vertLinePlugin);
+
+const rankChart = new Chart(rankCtx, {
+  type:'bar',
+  data:{labels:[], datasets:[{label:'數量', data:[], backgroundColor:'rgba(29,122,102,0.7)', borderColor:'#1D7A66', borderWidth:1, borderRadius:4}]},
+  options:{
+    indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' 頭'}}},
+    scales:{
+      x:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#8A7A6E',font:{size:10},callback:v=>v>=10000?(v/10000).toFixed(0)+'萬':v}},
+      y:{grid:{display:false}, ticks:{color:'#3D2B1F',font:{size:11}}}
+    },
+    animation:{duration:400}
+  }
+});
+
+const cagrChart = new Chart(cagrCtx, {
+  type:'bar',
+  data:{labels:[], datasets:[{label:'CAGR%', data:[], backgroundColor:[], borderRadius:4, borderWidth:0}]},
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'CAGR: '+(c.raw>0?'+':'')+c.raw.toFixed(2)+'%'}}},
+    scales:{
+      x:{grid:{display:false}, ticks:{color:'#3D2B1F',font:{size:11}}},
+      y:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#8A7A6E',font:{size:10},callback:v=>v+'%'}, suggestedMin:-5, suggestedMax:15}
+    },
+    animation:{duration:400}
+  }
+});
+
+// ── MAIN UPDATE ──
+function updateAll(idx) {
+  currentIdx = idx;
+  const yr = YEARS[idx];
+  const d = BY[String(yr)];
+  const prevD = idx > 0 ? BY[String(YEARS[idx-1])] : null;
+
+  // Year display
+  document.getElementById('yearDisplay').textContent = '民'+yr;
+  document.getElementById('yearSlider').value = idx;
+
+  // Update marks
+  document.querySelectorAll('.year-mark').forEach((m,i)=>m.classList.toggle('active',i===idx));
+
+  // Tags
+  ['trendTag','rankTag','cagrTag','tableTag'].forEach(id => document.getElementById(id).textContent='民'+yr+'年');
+
+  // ── KPI CARDS ──
+  const dog = d.dog, cat = d.cat, stray = d.stray;
+
+  // Dog KPI
+  if(dog > 0) {
+    document.getElementById('kpi-dog').innerHTML = (dog/10000).toFixed(1)+'<span class="kpi-unit"> 萬頭</span>';
+    const dogChg = prevD && prevD.dog > 0 ? ((dog-prevD.dog)/prevD.dog*100).toFixed(1) : null;
+    document.getElementById('kpi-dog-sub').innerHTML = dogChg
+      ? `<span class="kpi-badge ${parseFloat(dogChg)>=0?'badge-up':'badge-down'}">${parseFloat(dogChg)>=0?'▲':'▼'} ${Math.abs(dogChg)}%</span>較前期`
+      : '本期有調查資料';
+  } else {
+    document.getElementById('kpi-dog').innerHTML = '<span style="font-size:1.1rem;color:var(--faint)">本年無資料</span>';
+    document.getElementById('kpi-dog-sub').textContent = '犬隻登記調查為偶數年';
+  }
+
+  // Cat KPI
+  if(cat > 0) {
+    document.getElementById('kpi-cat').innerHTML = (cat/10000).toFixed(1)+'<span class="kpi-unit"> 萬頭</span>';
+    const catChg = prevD && prevD.cat > 0 ? ((cat-prevD.cat)/prevD.cat*100).toFixed(1) : null;
+    document.getElementById('kpi-cat-sub').innerHTML = catChg
+      ? `<span class="kpi-badge ${parseFloat(catChg)>=0?'badge-up':'badge-down'}">${parseFloat(catChg)>=0?'▲':'▼'} ${Math.abs(catChg)}%</span>較前期`
+      : '本期有調查資料';
+  } else {
+    document.getElementById('kpi-cat').innerHTML = '<span style="font-size:1.1rem;color:var(--faint)">本年無資料</span>';
+    document.getElementById('kpi-cat-sub').textContent = '貓隻推算為偶數年';
+  }
+
+  // Stray KPI
+  if(stray > 0) {
+    document.getElementById('kpi-stray').innerHTML = (stray/10000).toFixed(2)+'<span class="kpi-unit"> 萬頭</span>';
+    const strayChg = prevD && prevD.stray > 0 ? ((stray-prevD.stray)/prevD.stray*100).toFixed(1) : null;
+    document.getElementById('kpi-stray-sub').innerHTML = strayChg
+      ? `<span class="kpi-badge ${parseFloat(strayChg)<=0?'badge-up':'badge-down'}">${parseFloat(strayChg)<=0?'▼':'▲'} ${Math.abs(strayChg)}%</span>${parseFloat(strayChg)<=0?'數量下降（改善）':'數量增加'}`
+      : '本期有流浪犬調查';
+  } else {
+    document.getElementById('kpi-stray').innerHTML = '<span style="font-size:1.1rem;color:var(--faint)">本年無資料</span>';
+    document.getElementById('kpi-stray-sub').textContent = '流浪犬調查為特定年份';
+  }
+
+  // Ratio KPI
+  if(dog > 0 && cat > 0) {
+    const ratio = (cat/dog*100).toFixed(0);
+    document.getElementById('kpi-ratio').innerHTML = ratio+'<span class="kpi-unit">%</span>';
+    document.getElementById('kpi-ratio-sub').innerHTML = `<span class="kpi-badge badge-neutral">貓/犬比</span>每百犬有${ratio}隻貓`;
+  } else if(dog > 0) {
+    document.getElementById('kpi-ratio').innerHTML = '—';
+    document.getElementById('kpi-ratio-sub').textContent = '無貓隻資料可計算比例';
+  } else {
+    document.getElementById('kpi-ratio').innerHTML = '—';
+    document.getElementById('kpi-ratio-sub').textContent = '本年度無寵物登記資料';
+  }
+
+  // ── TREND CHART: update vertical line ──
+  trendChart.update('none');
+
+  // ── RANK CHART ──
+  updateRankChart(yr, d);
+
+  // ── CAGR CHART ──
+  updateCAGRChart(yr, idx);
+
+  // ── TABLE ──
+  updateTable(yr, d, prevD);
+}
+
+function getCountyData(yr, d) {
+  // Decide which county data to show based on mode
+  if(mode==='stray') {
+    const cs = d.county_stray;
+    if(Object.keys(cs).length === 0) return {data:{}, type:'stray', hasData:false};
+    return {data:cs, type:'stray', hasData:true};
+  } else if(mode==='pet') {
+    const cd = d.county_dog;
+    if(Object.keys(cd).length === 0) return {data:{}, type:'dog', hasData:false};
+    return {data:cd, type:'dog', hasData:true};
+  } else {
+    // all: prefer stray if only stray, prefer dog if only dog, mix if both
+    const hasDog = Object.keys(d.county_dog).length > 0;
+    const hasStray = Object.keys(d.county_stray).length > 0;
+    if(hasDog) return {data:d.county_dog, type:'dog', hasData:true};
+    if(hasStray) return {data:d.county_stray, type:'stray', hasData:true};
+    return {data:{}, type:'none', hasData:false};
+  }
+}
+
+function updateRankChart(yr, d) {
+  const {data, type, hasData} = getCountyData(yr, d);
+  document.getElementById('rankSub').textContent = type==='stray'?'流浪犬數量前十縣市':'登記犬隻前十縣市';
+
+  if(!hasData) {
+    rankChart.data.labels = ['無資料'];
+    rankChart.data.datasets[0].data = [0];
+    rankChart.update();
+    return;
+  }
+  const sorted = Object.entries(data).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const color = type==='stray' ? 'rgba(160,48,32,0.7)' : 'rgba(29,122,102,0.7)';
+  const bcolor = type==='stray' ? '#A03020' : '#1D7A66';
+  rankChart.data.labels = sorted.map(e=>e[0]);
+  rankChart.data.datasets[0].data = sorted.map(e=>e[1]);
+  rankChart.data.datasets[0].backgroundColor = color;
+  rankChart.data.datasets[0].borderColor = bcolor;
+  rankChart.options.plugins.tooltip.callbacks.label = c => c.raw.toLocaleString()+' 頭';
+  rankChart.update();
+}
+
+function updateCAGRChart(yr, idx) {
+  const base = BY['90'];
+  // compute CAGR for dog, cat, stray vs base year 90
+  const labels = [];
+  const vals = [];
+  const colors = [];
+
+  const nYears = yr - 90;
+  if(nYears <= 0) {
+    cagrChart.data.labels = ['民90（基準年）'];
+    cagrChart.data.datasets[0].data = [0];
+    cagrChart.data.datasets[0].backgroundColor = ['#B8ADA4'];
+    cagrChart.update();
+    return;
+  }
+
+  const curD = BY[String(yr)];
+  if(curD.dog > 0 && base.dog > 0) {
+    const cagr = (Math.pow(curD.dog/base.dog, 1/nYears)-1)*100;
+    labels.push('登記犬隻');
+    vals.push(parseFloat(cagr.toFixed(2)));
+    colors.push(cagr>=0?'rgba(29,122,102,0.75)':'rgba(160,48,32,0.75)');
+  }
+  if(curD.cat > 0) {
+    const baseCat = BY['92'].cat > 0 ? BY['92'].cat : base.cat;
+    const baseYr = BY['92'].cat > 0 ? 92 : 90;
+    const ny = yr - baseYr;
+    if(ny > 0) {
+      const cagr = (Math.pow(curD.cat/baseCat, 1/ny)-1)*100;
+      labels.push('推算貓隻');
+      vals.push(parseFloat(cagr.toFixed(2)));
+      colors.push(cagr>=0?'rgba(184,115,51,0.75)':'rgba(160,48,32,0.75)');
+    }
+  }
+  if(curD.stray > 0 && base.stray > 0) {
+    const cagr = (Math.pow(curD.stray/base.stray, 1/nYears)-1)*100;
+    labels.push('流浪犬');
+    vals.push(parseFloat(cagr.toFixed(2)));
+    colors.push(cagr<=0?'rgba(74,112,85,0.75)':'rgba(160,48,32,0.75)');
+  }
+
+  if(labels.length === 0) {
+    cagrChart.data.labels = ['本年度無可計算資料'];
+    cagrChart.data.datasets[0].data = [0];
+    cagrChart.data.datasets[0].backgroundColor = ['#B8ADA4'];
+  } else {
+    cagrChart.data.labels = labels;
+    cagrChart.data.datasets[0].data = vals;
+    cagrChart.data.datasets[0].backgroundColor = colors;
+  }
+  cagrChart.update();
+}
+
+function updateTable(yr, d, prevD) {
+  const {data, type, hasData} = getCountyData(yr, d);
+  const tbody = document.getElementById('dataTable');
+  document.getElementById('tableSub').textContent = type==='stray'?'流浪犬縣市資料':'登記犬隻縣市資料';
+
+  if(!hasData) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--faint);padding:24px">本年度無${type==='stray'?'流浪犬':'犬隻登記'}調查資料</td></tr>`;
+    return;
+  }
+
+  const prevData = prevD ? (type==='stray' ? prevD.county_stray : prevD.county_dog) : {};
+  const sorted = Object.entries(data).sort((a,b)=>b[1]-a[1]);
+  const total = sorted.reduce((s,e)=>s+e[1],0);
+  const maxVal = sorted[0][1];
+
+  tbody.innerHTML = sorted.map(([county, val], i) => {
+    const pct = (val/total*100).toFixed(1);
+    const barW = (val/maxVal*100).toFixed(1);
+    const prev = prevData[county] || 0;
+    const chg = prev > 0 ? ((val-prev)/prev*100).toFixed(1) : null;
+    const chgHtml = chg ? `<span class="td-change ${parseFloat(chg)>=0?'up':'down'}">${parseFloat(chg)>=0?'▲':'▼'} ${Math.abs(chg)}%</span>` : '<span style="color:var(--faint)">—</span>';
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    return `<tr>
+      <td class="td-rank">${medal||('#'+(i+1))}</td>
+      <td style="font-weight:${i<3?600:400}">${county}</td>
+      <td>${val.toLocaleString()}</td>
+      <td style="color:var(--muted)">${pct}%</td>
+      <td class="td-bar-wrap"><div class="td-bar"><div class="td-bar-fill" style="width:${barW}%;background:${type==='stray'?'var(--rust)':'var(--teal)'}"></div></div></td>
+      <td>${chgHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── INIT ──
+updateAll(0);
+</script>
+</body>
+</html>
